@@ -40,6 +40,40 @@ from traceback import print_exc
 # from openai import OpenAI
 
 
+model_name = 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2'
+model_name2 = "indolem/indobertweet-base-uncased"
+model_name3 = "LazarusNLP/all-indo-e5-small-v4"
+device='cuda'
+
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModel.from_pretrained(model_name)
+model.to(device)
+
+
+def mean_pooling(model_output, attention_mask):
+    token_embeddings = model_output[0] #First element of model_output contains all token embeddings
+    input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+    return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
+
+def get_embeddings(data,text_col):
+    text_data = data[text_col].to_list()
+    batched_data = [text_data[x:x+32] for x in range(0, len(text_data), 32)]
+    out = []
+    for batch in tqdm(batched_data):
+      encoded_input = tokenizer(batch, padding=True, return_tensors='pt',max_length=512,truncation=True)
+      encoded_input.to(device)
+
+      # Compute token embeddings
+      with torch.no_grad():
+          model_output = model(**encoded_input)
+
+      # Perform pooling. In this case, max pooling.
+      sentence_embeddings = mean_pooling(model_output, encoded_input['attention_mask']).to('cpu')
+      out.append(sentence_embeddings)
+    sentence_embeddings = torch.cat(out)
+    return sentence_embeddings
+
+
 class topic_modelling():
     def __init__(self,X,data):
 
