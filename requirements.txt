@@ -1,0 +1,12 @@
+numpy
+pandas
+nltk
+torch
+tqdm
+spacy-lookups-data
+spacy
+kneed
+datasets
+transformers
+accelerate
+plotly
